@@ -1,0 +1,45 @@
+[package]
+name = "dig-cert"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Per-machine name-constrained local TLS CA + leaf issuance + automatic renewal for dig.local and the .dig TLD."
+license = "GPL-2.0-only"
+repository = "https://github.com/DIG-Network/dig-cert"
+readme = "README.md"
+keywords = ["tls", "ca", "rustls", "certificate", "dig"]
+categories = ["cryptography", "network-programming"]
+
+[dependencies]
+# X.509 CA + leaf issuance. ring provider + PEM (de)serialization — NO aws-lc, matching the
+# ecosystem rustls posture so consumers never end up with two CryptoProviders.
+rcgen = { version = "0.13", default-features = false, features = ["ring", "pem", "x509-parser"] }
+# The serving TLS stack. Pinned byte-identical to dig-dns / dig-node-core (0.23, default-features
+# off, ring + std + tls12 + logging) so a consumer that also links this crate installs exactly ONE
+# CryptoProvider (ring) and never hits the "multiple CryptoProviders" install panic.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+# The DER/PEM key + cert wrapper types rustls and rcgen share.
+rustls-pki-types = "1"
+# Parse the leaf's PEM cert chain + key into the DER types the rustls loader consumes.
+rustls-pemfile = "2"
+# Parse a leaf certificate's notAfter for the renewal decision without pulling in a second X.509
+# stack — x509-parser is what rcgen already re-exports for inspection.
+x509-parser = "0.16"
+# Atomic swap of the leaf key + cert pair (same-dir temp then rename) so a serving reader never
+# observes a torn key/cert pair mid-rotation.
+tempfile = "3"
+# Lock-free pointer swap backing the reloadable rustls cert resolver — the serving thread reads the
+# current CertifiedKey without a mutex; rotation publishes a new one atomically.
+arc-swap = "1"
+# Structured errors for the public API.
+thiserror = "2"
+# Wall-clock reasoning about validity windows and the renewal threshold.
+time = { version = "0.3", features = ["macros"] }
+tracing = "0.1"
+
+[dev-dependencies]
+# Independent chain-validation of issued leaves against the generated CA — the name-constraint
+# containment proof (dig.local/x.dig accepted, example.com rejected) is asserted through a real
+# path-validation library, not our own issuer. Pinned to the SAME rustls-webpki the rustls stack
+# resolves so the test tree carries exactly one copy.
+webpki = { package = "rustls-webpki", version = "0.103", default-features = false, features = ["ring", "std"] }
