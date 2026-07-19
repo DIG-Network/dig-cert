@@ -36,3 +36,14 @@ The renewal manager renews the LEAF automatically but only FLAGS an approaching-
 anchor invalidates every installed-trust relationship until dig-installer re-installs the new CA, so
 rotation is the explicit `rotate_ca` operation the installer drives — not something that can silently
 break HTTPS on a daily timer.
+
+## The reloadable resolver's `resolve()` is the TLS hot path — cover it with a real handshake
+
+`ReloadableCertResolver::resolve()` is invoked by rustls on EVERY inbound handshake to hand the
+listener the current leaf. Unit-testing `reload()`/`from_files()` alone leaves that method (and
+`load_server_config`'s produced `ServerConfig`) unproven — a torn reload or a stale `ArcSwap` read
+would only surface as a wrong/expired cert served to live clients. The `tests/handshake.rs` suite
+drives a real in-memory rustls handshake (a client with a capturing verifier, no sockets) so the
+served leaf is asserted byte-for-byte, and asserts that after `reload()` a fresh handshake serves the
+ROTATED leaf. This is the crate's core serving contract; keep it as a handshake, not a unit poke,
+because only a handshake exercises the `ResolvesServerCert` call path rustls actually uses.
