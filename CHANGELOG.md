@@ -6,8 +6,8 @@ This project adheres to [Semantic Versioning](https://semver.org) and
 
 ## [0.1.1] - 2026-07-19
 
-### Tests
-- **resolver:** Cover the `ResolvesServerCert` serving hot path with a real in-memory TLS handshake — asserts `load_server_config` presents the on-disk leaf and that `reload()` hot-swaps the served leaf (resolver.rs line coverage 79% → 92%).
+### Testing
+- **dig-cert:** Cover ResolvesServerCert handshake + cert hot-swap path (#2)
 
 ## [0.1.0] - 2026-07-16
 
