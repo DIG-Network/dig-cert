@@ -1,6 +1,6 @@
 [package]
 name = "dig-cert"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version = "1.75"
 description = "Per-machine name-constrained local TLS CA + leaf issuance + automatic renewal for dig.local and the .dig TLD."
